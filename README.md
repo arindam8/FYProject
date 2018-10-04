@@ -1,0 +1,1 @@
+This is a repository of a project on using deep learning models for malware detection/classification and follows one of the best-practice architectures for tensorflow based deep learning projects.
