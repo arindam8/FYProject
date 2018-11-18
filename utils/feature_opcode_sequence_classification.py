@@ -6,7 +6,7 @@ import nltk
 import matplotlib.pyplot as plt
 import csv
 import pandas as pd
-
+import numpy as np
 
 
 
@@ -30,31 +30,35 @@ def getNgramFromFile(source_path):
     return (ngram_listof_string)
 
 
+
+
+
+
 def getFileName(path):
     filename_with_ext = os.path.basename(path)
     filename, file_extension = os.path.splitext(filename_with_ext)
     return (filename)
 
 
-def output_dict_to_csv(filepath,dict,imgpath):
+def output_dict_to_csv(filepath,dict):
 
     with open(filepath, 'w') as f:
         # w = csv.DictWriter(f, dict.keys())
         # w.writeheader()
         # w.writerow(dict)
-        df = pd.DataFrame(dict)
+        df = pd.DataFrame(dict, index=[0])
         df.to_csv(filepath)
-        df.convert_objects(convert_numeric=True).plot()
-        plt.savefig(imgpath)
+        # df.convert_objects(convert_numeric=True).plot()
+        # plt.savefig(imgpath)
 
 
-def getNgramList(path):
-    ngram_list = []
+def getWordsForDict(path):
+    word_list = []
     files = os.listdir(path)
     for file in files:
         if file.endswith(".asm"):
-            ngram_list.extend(getNgramFromFile(path+file))
-    return (set(ngram_list))
+            word_list.extend(getNgramFromFile(path+file))
+    return (set(word_list))
 
 
 def getOpcodeForFile(source_path):
@@ -81,29 +85,45 @@ def getOpcodeForFile(source_path):
 def main():
     # test('/Users/arindamsharma/Desktop/FY/FY Project/Dataset/Microsoft MCC/train_n/0A32eTdBKayjCWhZqDOQ.asm')
     base_path = "/Users/arindamsharma/Desktop/FY/FY Project/Dataset/Microsoft MCC/"
-    print ('Computing ngram list for corpus')
+    print ('Computing dictionary for corpus')
     print ('\n')
-    data_dir_path = "/Users/arindamsharma/Desktop/FY/FY Project/Dataset/Microsoft MCC/train_n/"
-    ngram_set = set()
-    ngram_set = getNgramList(data_dir_path)
-    print ('Ngram list computed')
+    data_dir_path = "/Users/arindamsharma/Desktop/FY/FY Project/Dataset/Microsoft MCC/train_op/"
+    img_dir = "/Users/arindamsharma/Desktop/FY/FY Project/Dataset/Microsoft MCC/train_op/images/"
+    word_dict = set()
+    word_dict = getWordsForDict(data_dir_path)
+    word_dict_list = list(word_dict)
 
-    file_frequency_dict = {}
+    print ('Word list for dictionary computed')
+    one_hot_vec_len = len(word_dict_list)
+    file_region_dict = {}
+    # try:
+    #     os.mkdir(img_dir)
+    #
+    # except OSError:
+    #     print ("Creation of the directory failed")
     for file in os.listdir(data_dir_path):
         if file.endswith(".asm"):
             print ('\n')
-            print ('Getting ngram frequency for:'+ file)
+            print ('Getting region matrix for:'+ file)
             ngram_freq = {}
-            ngram_list = getNgramFromFile(data_dir_path+file)
-            for ngram in ngram_set:
-                count = ngram_list.count(ngram)
-                # for i in range(0,len(opcode_list)-2):
-                #     item = opcode_list[i]+' '+opcode_list[i+1]
-                #     if (ngram == str(item)):
-                #         count = count + 1
-                ngram_freq[ngram] = count
-            file_frequency_dict[getFileName(file)] = ngram_freq
-    output_dict_to_csv(base_path+'byte_ngram.csv',file_frequency_dict,base_path+'byte_ngram.png')
-    print ('The output csv file is: '+ base_path+'byte_ngram.csv')
+            regions_list = getNgramFromFile(data_dir_path+file)
+            region = []
+            region_matrix = []
+            for i in range(len(regions_list)-1):
+                region.append(regions_list[i]+' '+regions_list[i+1])
+                first_element_vec = [0]* one_hot_vec_len
+                second_element_vec = [0]* one_hot_vec_len
+                first_element_vec[word_dict_list.index(regions_list[i])] = 1
+                second_element_vec[word_dict_list.index(regions_list[i+1])] = 1
+                first_element_vec.extend(second_element_vec)
+                region_matrix.append(first_element_vec)
+
+            file_region_dict[getFileName(file)] = np.asmatrix(np.array(region_matrix))
+            print (file_region_dict[getFileName(file)].shape)
+            # plt.imshow(file_region_dict[getFileName(file)])
+            # plt.savefig(img_dir+getFileName(file)+'.png')
+
+    # output_dict_to_csv(base_path+'opcode_region_stats.csv',file_region_dict)
+    print ('The output image directory is: '+ img_dir)
 if __name__ == "__main__":
     main()
